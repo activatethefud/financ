@@ -1,4 +1,5 @@
 #define _XOPEN_SOURCE 500
+#define _POSIX_C_SOURCE 200112L
 #include "callbacks.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +41,24 @@ int monthly_inflow=0;
 int monthly_outflow=0;
 float outflow=0;
 int transac_counter=0;
+
+#define OVERWRITE_YES (1)
+
+void set_datemsk_env()
+{
+	char *datemsk_file = malloc(strlen(DATA_DIR"datemsk.txt")+strlen(getenv("HOME"))+1);
+	strcpy(datemsk_file,getenv("HOME"));
+	strcat(datemsk_file,DATA_DIR"datemsk.txt");
+	FILE *file_handler = fopen(datemsk_file,"w");
+	ASSERT(NULL != file_handler,"Error opening file");
+
+	fprintf(file_handler,"%%d/%%m/%%Y");
+	fclose(file_handler);
+
+	ASSERT(0 == setenv("DATEMSK",datemsk_file,OVERWRITE_YES),"Error setting DATEMSK env. var.");
+	free(datemsk_file);
+
+}
 
 char *current_date_string()
 {
@@ -300,6 +319,9 @@ float test_func(char *line)
 int main(int argc, char **argv)
 {
 		goto_dir(DATA_DIR);
+
+		// Set datemsk to %d/%m/%Y
+		set_datemsk_env();
 
 		CREATE_FILE(BUDGET_FILE);
 		CREATE_FILE(TRANSAC_FILE);
