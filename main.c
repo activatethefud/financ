@@ -241,8 +241,6 @@ void cover(category *source_ptr,float cover_with)
 
 	while(iterator != NULL) {
 
-		fprintf(stderr,"Iteration\n");
-
 		current_ptr = iterator->data;
 
 		if(current_ptr == source_ptr || current_ptr->state >= 0) {
