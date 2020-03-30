@@ -7,6 +7,7 @@
 #include <getopt.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <math.h>
 #include <unistd.h>
 #include <time.h>
 #include "llist.h"
@@ -78,7 +79,7 @@ void print_category(const void *input)
 		FOR_CATEGORY(categories,&max_len_check);
 
 		// Skip empty categories
-		if(!categ->state && !categ->plan) {
+		if(!categ->state && (categ->budgeted >= categ->plan)) {
 			return;
 		}
 
@@ -252,7 +253,7 @@ void cover(category *source_ptr,float cover_with)
 			return;
 		}
 
-		float transac_amount = cover_with > abs(current_ptr->state) ? abs(current_ptr->state) : cover_with;
+		float transac_amount = cover_with > fabs(current_ptr->state) ? fabs(current_ptr->state) : cover_with;
 
 		parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),2,source_ptr->name,transac_amount,NULL)));
 		parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),12,current_ptr->name,transac_amount,NULL)));
