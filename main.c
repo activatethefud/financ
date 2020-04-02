@@ -258,7 +258,6 @@ void cover(category *source_ptr,float cover_with)
 		parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),2,source_ptr->name,transac_amount,NULL)));
 		parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),12,current_ptr->name,transac_amount,NULL)));
 
-		source_ptr->state -= transac_amount;
 		cover_with -= transac_amount;
 		iterator = iterator->next;
 
@@ -289,8 +288,6 @@ void quick_budget(category *source_ptr)
 
 				parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),2,source_ptr->name,transac_amount,NULL)));
 				parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),12,current_ptr->name,transac_amount,NULL)));
-
-				source_ptr->state -= transac_amount;
 
 				iterator=iterator->next;
 		}
