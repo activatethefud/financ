@@ -103,9 +103,11 @@ category *new_category(const char *name_str)
 int parse_budget_line(const char *_line)
 {
 		char *line = strdup(_line);
+		int tokenizer_size;
+		char **tokenizer = create_tokenizer(line,&tokenizer_size,DELIMITER);
 
-		char *categ_name=strtok(line,DELIMITER);
-		float planned=strtof(strtok(NULL,DELIMITER),NULL);
+		char *categ_name = tokenizer_get_field(tokenizer,tokenizer_size,0);
+		float planned=strtof(tokenizer_get_field(tokenizer,tokenizer_size,1),NULL);
 
 		void *found_in_categories = FIND_CATEGORY(categories,categ_name,&category_read_check);
 		void *found_in_hidden = FIND_CATEGORY(categories,categ_name,&category_read_check);
@@ -121,7 +123,7 @@ int parse_budget_line(const char *_line)
 				ASSERT(0,"Category duplicate detected!");
 		}
 
-		free(categ_name);
+		delete_tokenizer(tokenizer,tokenizer_size);
 		return 0;
 }
 
@@ -141,15 +143,18 @@ int parse_transaction(const char *_line)
 
 		// FORMAT: date,[1/0/],category,amount,description
 
-		t_date_string=strtok(line,DELIMITER);
+		int tokenizer_size;
+		char **tokenizer = create_tokenizer(line,&tokenizer_size,DELIMITER);
+
+		t_date_string = tokenizer_get_field(tokenizer,tokenizer_size,DATE_FIELD);
 		struct tm *t_date;
 		t_date=getdate(t_date_string);
 
 		ASSERT(NULL != t_date,"Getdate failed");
 
-		io_flag=strtol(strtok(NULL,DELIMITER),NULL,10);
-		category_name=strtok(NULL,DELIMITER);
-		amount=strtof(strtok(NULL,DELIMITER),NULL);
+		io_flag = strtol(tokenizer_get_field(tokenizer,tokenizer_size,IO_FIELD),NULL,10);
+		category_name = tokenizer_get_field(tokenizer,tokenizer_size,CATEG_FIELD);
+		amount = strtof(tokenizer_get_field(tokenizer,tokenizer_size,AMOUNT_FIELD),NULL);
 
 		category *found_ptr=FIND_CATEGORY(categories,category_name,&category_read_check);
 
@@ -184,7 +189,7 @@ int parse_transaction(const char *_line)
 				}
 		}
 
-		free(line);
+		delete_tokenizer(tokenizer,tokenizer_size);
 		return 0;
 }
 
@@ -289,7 +294,6 @@ void goto_data_dir()
 	strcat(data_dir_path,getenv("USER"));
 	strcat(data_dir_path,DATA_DIR);
 
-	puts(data_dir_path);
 	mkdir_r(data_dir_path);
 	ASSERT(0 == chdir(data_dir_path),"Error changing to data directory.");
 
@@ -413,6 +417,7 @@ int main(int argc, char **argv)
 			//float category_range_query(const char *path,const char *date_from,const char *date_to,const char *categ_name,float (*parse_line)(char*))
 			printf("Report on period %s to %s\n",from_arg,to_arg);
 			printf("Total outflow: %f\n",range_query(TRANSAC_FILE,from_arg,to_arg,&sum_outflow));
+			printf("Total inflow: %f\n",range_query(TRANSAC_FILE,from_arg,to_arg,&sum_inflow));
 		}
 		else if(state_flag) {
 				FOR_CATEGORY(categories,&print_category);
@@ -483,11 +488,11 @@ int main(int argc, char **argv)
 				"   -c --category <name> - Set the transaction category\n"
 				"   --description <description> - Set the transaction description\n"
 				"   --cover - Use category to cover overspending\n"
+				"   --report - Report usage for category [-c] or global\n"
 				"   -i - Set inflow\n"
 				"   -o - Set outflow\n");
 		}
 
-		//free(category_arg);
 		if(NULL != categories) free_list(categories);
 		if(NULL != hidden_categories) free_list(hidden_categories);
 		if(NULL != description) free(description);

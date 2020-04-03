@@ -1,13 +1,4 @@
-#define _POSIX_C_SOURCE 200809L
 #include "file_ops.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include "errors.h"
-
-#define DAY (3600*24)
-#define DELIMITER ","
 
 int parse_file(const char *path,int (*parse_line)(const char*))
 {
@@ -57,7 +48,6 @@ float range_query(const char *path,const char *date_from,const char *date_to,flo
 				}
 
 				free(line);
-				free(_line);
 				line=NULL;
 				line_buf=0;
 		}
@@ -111,4 +101,31 @@ const char* append_to_file(const char *fpath, const char* string)
 		fclose(output);
 
 		return string;
+}
+
+char **create_tokenizer(char *line,int *tokenizer_size,const char *delimiter)
+{
+	*tokenizer_size = 0;
+	char **tokenizer = malloc(sizeof *tokenizer);
+	char *token;
+
+	while((*tokenizer_size == 0 && (token=strtok(line,delimiter))) || (token=strtok(NULL,delimiter))) {
+
+		tokenizer[(*tokenizer_size)++] = token;
+		ASSERT(NULL != (tokenizer = realloc(tokenizer,(*tokenizer_size+1)*(sizeof *tokenizer))),"Realloc failed");
+	}
+
+	return tokenizer;
+}
+
+char *tokenizer_get_field(char **tokenizer,int tokenizer_size,int index)
+{
+	ASSERT(index < tokenizer_size,"Index exceeds tokenizer size");
+	return tokenizer[index];
+}
+
+void delete_tokenizer(char **tokenizer,int tokenizer_size)
+{
+	free(tokenizer[0]);
+	free(tokenizer);
 }
