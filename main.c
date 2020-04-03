@@ -1,22 +1,4 @@
-#define _XOPEN_SOURCE 500
-#define _POSIX_C_SOURCE 200112L
-#include "callbacks.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <getopt.h>
-#include <sys/stat.h>
-#include <time.h>
-#include <math.h>
-#include <unistd.h>
-#include <time.h>
-#include "llist.h"
-#include "utility.h"
-#include "file_ops.h"
-#include "errors.h"
-#define GETOPT_FMT "ha:ioc:d:"
-#define DELIMITER ",\n"
-#define DATE_FMT "dd/mm/yyyy"
+#include "main.h"
 
 // Function renames
 #define ADD_CATEGORY(list,categ,size) push(list,categ,size)
@@ -24,11 +6,6 @@
 #define FOR_CATEGORY(list,func) iterate_list(list,func)
 #define SAME_STR(A,B) strcmp(A,B) == 0
 #define NOT_SAME_STR(A,B) strcmp(A,B) != 0
-
-#define BUDGET_FILE "budget.txt"
-#define TRANSAC_FILE "history.txt"
-#define HIDDEN_CATEG_FILE "hidden.txt"
-#define DATA_DIR "/.config/financ/"
 
 #define CREATE_FILE(name) if(0 != access(name,F_OK)) \
 		fclose(fopen(name,"w"));
@@ -293,28 +270,35 @@ void quick_budget(category *source_ptr)
 		}
 }
 
-void goto_dir(const char *path)
+void mkdir_r(char *path)
 {
-		char *data_dir=malloc(strlen(getenv("HOME")) + strlen(DATA_DIR) + 1);
-		strcpy(data_dir,getenv("HOME"));
-		strcat(data_dir,DATA_DIR);
+	if(path[1] != '\0') {
+		mkdir_r(dirname(strdup(path)));
+	}
 
-		if(0 != access(data_dir,F_OK)) {
-			ASSERT(-1 != system("mkdir -p ~"DATA_DIR),"Error making "DATA_DIR);
-		}
-
-		ASSERT(-1 != chdir(data_dir),"Error changing directory");
-		free(data_dir);
+	if(0 != access(path,F_OK)) {
+		ASSERT(0 == mkdir(path,0755),"Error creating directory");
+	}
 }
 
-float test_func(char *line)
+void goto_data_dir()
 {
-	puts(line);
+	char *data_dir_path = malloc(strlen("/home/") + strlen(getenv("USER")) + strlen(DATA_DIR));
+
+	strcpy(data_dir_path,"/home/");
+	strcat(data_dir_path,getenv("USER"));
+	strcat(data_dir_path,DATA_DIR);
+
+	puts(data_dir_path);
+	mkdir_r(data_dir_path);
+	ASSERT(0 == chdir(data_dir_path),"Error changing to data directory.");
+
+	free(data_dir_path);
 }
 
 int main(int argc, char **argv)
 {
-		goto_dir(DATA_DIR);
+		goto_data_dir();
 
 		// Set datemsk to %d/%m/%Y
 		set_datemsk_env();
@@ -328,6 +312,7 @@ int main(int argc, char **argv)
 		char state_flag=0;
 		char quick_flag=0;
 		char cover_flag=0;
+		char report_flag=0;
 		char option;
 		int long_option_index;
 
@@ -336,8 +321,6 @@ int main(int argc, char **argv)
 
 		line_counter=0;
 		parse_file(TRANSAC_FILE,&parse_transaction);
-
-		//range_query("/home/nikola/.config/financ/history.txt","1/2/2020","29/2/2020",test_func);
 
 		struct option long_options[]= {
 				{ "to", required_argument, 0, 0 },
@@ -349,6 +332,7 @@ int main(int argc, char **argv)
 				{ "description", required_argument, 0, 0},
 				{ "quick-budget", no_argument, 0, 0},
 				{ "cover", no_argument, 0, 0},
+				{ "report", no_argument, 0, 'r'},
 				{ 0, 0, 0, 0 }
 		};
 
@@ -366,13 +350,9 @@ int main(int argc, char **argv)
 						switch(long_option_index) {
 								case 0:
 									to_arg=strdup(optarg);
-									//to_arg=malloc(strlen(optarg)+1);
-									//strcpy(to_arg,optarg);
 									break;
 								case 1:
 									from_arg=strdup(optarg);
-									//from_arg=malloc(strlen(optarg)+1);
-									//strcpy(from_arg,optarg);
 									break;
 								case 4:
 									state_flag=1;
@@ -388,6 +368,9 @@ int main(int argc, char **argv)
 									break;
 								case 8:
 									cover_flag=1;
+									break;
+								case 9:
+									report_flag=1;
 									break;
 						}
 				}
@@ -408,6 +391,9 @@ int main(int argc, char **argv)
 						case 'd':
 							date_arg=strdup(optarg);
 							break;
+						case 'r':
+							report_flag=1;
+							break;
 
 							
 				}
@@ -421,6 +407,12 @@ int main(int argc, char **argv)
 			cover(FIND_CATEGORY(categories,category_arg,&category_read_check),strtof(amount_arg,NULL));
 			free(category_arg);
 			free(amount_arg);
+		}
+		else if(from_arg && to_arg && report_flag) {
+			//float range_query(const char *path,const char *date_from,const char *date_to,float (*parse_line)(char*))
+			//float category_range_query(const char *path,const char *date_from,const char *date_to,const char *categ_name,float (*parse_line)(char*))
+			printf("Report on period %s to %s\n",from_arg,to_arg);
+			printf("Total outflow: %f\n",range_query(TRANSAC_FILE,from_arg,to_arg,&sum_outflow));
 		}
 		else if(state_flag) {
 				FOR_CATEGORY(categories,&print_category);

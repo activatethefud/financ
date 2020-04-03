@@ -1,5 +1,4 @@
 #include "callbacks.h"
-#include <string.h>
 
 extern float global_sum;
 extern int global_int;

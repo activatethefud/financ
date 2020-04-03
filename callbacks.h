@@ -2,6 +2,7 @@
 #define CALLBACKS_H
 
 #include "main.h"
+#include <string.h>
 
 void sum_state(const void *data);
 void sum_unbudgeted(const void *data);

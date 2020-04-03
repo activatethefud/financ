@@ -1,8 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "llist.h"
-#include "errors.h"
 
 void* find_data(const node *head,const void *criteria, int (*compare)(const void*,const void*))
 {
