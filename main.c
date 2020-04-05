@@ -22,6 +22,8 @@ int transac_counter=0;
 
 #define OVERWRITE_YES (1)
 
+#define DATEMSK_FMT "%%d/%%m/%%Y"
+
 void set_datemsk_env()
 {
 	char *datemsk_file = malloc(strlen(DATA_DIR"datemsk.txt")+strlen(getenv("HOME"))+1);
@@ -30,7 +32,7 @@ void set_datemsk_env()
 	FILE *file_handler = fopen(datemsk_file,"w");
 	ASSERT(NULL != file_handler,"Error opening file");
 
-	fprintf(file_handler,"%%d/%%m/%%Y");
+	fprintf(file_handler,DATEMSK_FMT);
 	fclose(file_handler);
 
 	ASSERT(0 == setenv("DATEMSK",datemsk_file,OVERWRITE_YES),"Error setting DATEMSK env. var.");
@@ -89,9 +91,10 @@ int category_read_check(const void *data, const void *name)
 
 category *new_category(const char *name_str)
 {
-		category *new=malloc(sizeof *new);
-		new->name=malloc(strlen(name_str)+1);
-		strcpy(new->name,name_str);
+		category *new = malloc(sizeof *new);
+		//new->name=malloc(strlen(name_str)+1);
+		//strcpy(new->name,name_str);
+		new->name = strdup(name_str);
 		new->state=0;
 		new->budgeted=0;
 		new->plan=0;
@@ -102,11 +105,10 @@ category *new_category(const char *name_str)
 
 int parse_budget_line(const char *_line)
 {
-		char *line = strdup(_line);
 		int tokenizer_size;
-		char **tokenizer = create_tokenizer(line,&tokenizer_size,DELIMITER);
+		char **tokenizer = create_tokenizer(strdup(_line),&tokenizer_size,DELIMITER);
 
-		char *categ_name = tokenizer_get_field(tokenizer,tokenizer_size,0);
+		const char *categ_name = tokenizer_get_field(tokenizer,tokenizer_size,0);
 		float planned=strtof(tokenizer_get_field(tokenizer,tokenizer_size,1),NULL);
 
 		void *found_in_categories = FIND_CATEGORY(categories,categ_name,&category_read_check);
@@ -130,8 +132,6 @@ int parse_budget_line(const char *_line)
 
 int parse_transaction(const char *_line)
 {
-		char *line = strdup(_line);
-
 		char *t_date_string;
 		int io_flag;
 		char *category_name;
@@ -144,7 +144,7 @@ int parse_transaction(const char *_line)
 		// FORMAT: date,[1/0/],category,amount,description
 
 		int tokenizer_size;
-		char **tokenizer = create_tokenizer(line,&tokenizer_size,DELIMITER);
+		char **tokenizer = create_tokenizer(strdup(_line),&tokenizer_size,DELIMITER);
 
 		t_date_string = tokenizer_get_field(tokenizer,tokenizer_size,DATE_FIELD);
 		struct tm *t_date;
@@ -193,7 +193,7 @@ int parse_transaction(const char *_line)
 		return 0;
 }
 
-char *create_transaction_line(const char *date_arg,const int io_flag,const char *categ_name,const float amount,const char *description)
+char *create_transaction_line(char *date_arg,const int io_flag,const char *categ_name,const float amount,const char *description)
 {
 		size_t buf_size=0;
 		buf_size += strlen(date_arg);
@@ -211,6 +211,8 @@ char *create_transaction_line(const char *date_arg,const int io_flag,const char 
 		else {
 				sprintf(line,"%s,%d,%s,%.2f,%s\n",date_arg,io_flag,categ_name,amount,description);
 		}
+
+		//free(date_arg);
 		return line;
 
 }
@@ -275,6 +277,20 @@ void quick_budget(category *source_ptr)
 		}
 }
 
+int days_to_date(const char *goal_date_string)
+{
+	char *today_string = current_date_string();
+	time_t today = mktime(getdate(today_string));
+	time_t goal_date = mktime(getdate(goal_date_string));
+
+	ASSERT(today <= goal_date,"Goal date before today!");
+
+	int diff = (goal_date-today)/(3600*24);
+
+	free(today_string);
+	return diff;
+}
+
 void mkdir_r(char *path)
 {
 	if(path[1] != '\0') {
@@ -284,6 +300,8 @@ void mkdir_r(char *path)
 	if(0 != access(path,F_OK)) {
 		ASSERT(0 == mkdir(path,0755),"Error creating directory");
 	}
+
+	free(path);
 }
 
 void goto_data_dir()
@@ -294,7 +312,7 @@ void goto_data_dir()
 	strcat(data_dir_path,getenv("USER"));
 	strcat(data_dir_path,DATA_DIR);
 
-	mkdir_r(data_dir_path);
+	mkdir_r(strdup(data_dir_path));
 	ASSERT(0 == chdir(data_dir_path),"Error changing to data directory.");
 
 	free(data_dir_path);
@@ -317,6 +335,7 @@ int main(int argc, char **argv)
 		char quick_flag=0;
 		char cover_flag=0;
 		char report_flag=0;
+		char no_date_flag=0;
 		char option;
 		int long_option_index;
 
@@ -353,19 +372,19 @@ int main(int argc, char **argv)
 				if(option == 0) {
 						switch(long_option_index) {
 								case 0:
-									to_arg=strdup(optarg);
+									to_arg = optarg;
 									break;
 								case 1:
-									from_arg=strdup(optarg);
+									from_arg = optarg;
 									break;
 								case 4:
 									state_flag=1;
 									break;
 								case 5:
-									date_arg=strdup(optarg);
+									date_arg = optarg;
 									break;
 								case 6:
-									description=strdup(optarg);
+									description = optarg;
 									break;
 								case 7:
 									quick_flag=1;
@@ -387,13 +406,13 @@ int main(int argc, char **argv)
 							outflow_flag=1;
 							break;
 						case 'a':
-							amount_arg=strdup(optarg);
+							amount_arg = optarg;
 							break;
 						case 'c':
-							category_arg=strdup(optarg);
+							category_arg = optarg;
 							break;
 						case 'd':
-							date_arg=strdup(optarg);
+							date_arg = optarg;
 							break;
 						case 'r':
 							report_flag=1;
@@ -403,21 +422,55 @@ int main(int argc, char **argv)
 				}
 		}
 
-		if(NULL == date_arg) {
+		if(NULL == date_arg && no_date_flag == 0) {
 				date_arg=current_date_string();
+				no_date_flag = 1;
 		}
 
 		if(cover_flag && NULL != category_arg && NULL != amount_arg) {
+
 			cover(FIND_CATEGORY(categories,category_arg,&category_read_check),strtof(amount_arg,NULL));
-			free(category_arg);
-			free(amount_arg);
+			//free(category_arg);
+			//free(amount_arg);
+
+		}
+		else if(category_arg && report_flag && from_arg && to_arg && report_flag) {
+
+			category *arg_category; 
+			ASSERT(NULL != (arg_category = FIND_CATEGORY(categories,category_arg,&category_read_check)),"Could not find argument category");
+			float outflow_interval_sum = category_range_query(TRANSAC_FILE,from_arg,to_arg,category_arg,&interval_outflow);
+			float outflow_occurrence = category_range_query(TRANSAC_FILE,from_arg,to_arg,category_arg,&count_occurrence_outflow);
+			float outflow_sum = category_range_query(TRANSAC_FILE,from_arg,to_arg,category_arg,&sum_outflow);
+
+			printf("Report for period %s to %s for %s\n",from_arg,to_arg,category_arg);
+			printf("Outflow: %f\n",outflow_sum);
+			printf("Inflow: %f\n",category_range_query(TRANSAC_FILE,from_arg,to_arg,category_arg,&sum_inflow));
+
+
+			printf("Average transaction: %f\n",outflow_sum / outflow_occurrence);
+
+			printf("Average interval: %f\n",outflow_interval_sum/outflow_occurrence);
+
+			float estimated_transaction_count = ceill(days_to_date(to_arg)/(outflow_interval_sum/outflow_occurrence));
+
+			if(estimated_transaction_count < 1) {
+				printf("Further spending not recommended.\n");
+			}
+			else {
+				float recommended_amount = (arg_category->state < (arg_category->state/estimated_transaction_count)) ?
+				arg_category->state :
+				arg_category->state/estimated_transaction_count;
+				
+				printf("Recommended next spending: %f\n",recommended_amount);
+			}
+
 		}
 		else if(from_arg && to_arg && report_flag) {
-			//float range_query(const char *path,const char *date_from,const char *date_to,float (*parse_line)(char*))
-			//float category_range_query(const char *path,const char *date_from,const char *date_to,const char *categ_name,float (*parse_line)(char*))
-			printf("Report on period %s to %s\n",from_arg,to_arg);
+
+			printf("Report for period %s to %s\n",from_arg,to_arg);
 			printf("Total outflow: %f\n",range_query(TRANSAC_FILE,from_arg,to_arg,&sum_outflow));
 			printf("Total inflow: %f\n",range_query(TRANSAC_FILE,from_arg,to_arg,&sum_inflow));
+
 		}
 		else if(state_flag) {
 				FOR_CATEGORY(categories,&print_category);
@@ -452,10 +505,10 @@ int main(int argc, char **argv)
 
 				append_to_file(TRANSAC_FILE,create_transaction_line(date_arg,2,from_arg,strtof(amount_arg,NULL),description));
 				append_to_file(TRANSAC_FILE,create_transaction_line(date_arg,12,to_arg,strtof(amount_arg,NULL),description));
-				free(to_arg);
-				free(from_arg);
-				free(amount_arg);
-				free(date_arg);
+				//free(to_arg);
+				//free(from_arg);
+				//free(amount_arg);
+				//free(date_arg);
 		}
 		// Make a new transaction with inflow/outflow
 		else if(category_arg != NULL && amount_arg != NULL && (inflow_flag || outflow_flag)) {
@@ -466,7 +519,7 @@ int main(int argc, char **argv)
 				}
 
 				append_to_file(TRANSAC_FILE,create_transaction_line(date_arg,1 == inflow_flag,category_arg,strtof(amount_arg,NULL),description));
-				free(category_arg);
+				//free(category_arg);
 		}
 		else if(quick_flag && category_arg != NULL) {
 		   		category *source_ptr=FIND_CATEGORY(categories,category_arg,&category_read_check);
@@ -495,6 +548,7 @@ int main(int argc, char **argv)
 
 		if(NULL != categories) free_list(categories);
 		if(NULL != hidden_categories) free_list(hidden_categories);
-		if(NULL != description) free(description);
+		//if(NULL != description) free(description);
+		if(NULL != date_arg && no_date_flag) free(date_arg);
 		return 0;
 }

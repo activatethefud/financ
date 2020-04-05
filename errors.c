@@ -1,5 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include "errors.h"
 
 void Error(const int cond, const char *msg, const char *file, const int line)
 {

@@ -12,10 +12,10 @@ int parse_file(const char *path,int (*parse_line)(const char*))
 		int i=0;
 
 		while(getline(&line,&lineBuf,input) > 0) {
-				(*parse_line)(strtok(line,"\n"));
-				line=NULL;
-				lineBuf=0;
+				(*parse_line)(line);
 		}
+
+		free(line);
 		fclose(input);
 		return 0;
 }
@@ -24,7 +24,6 @@ float range_query(const char *path,const char *date_from,const char *date_to,flo
 {
 		char *line=NULL;
 		size_t line_buf=0;
-		ssize_t line_size=0;
 		float result=0;
 		FILE *input=fopen(path,"r");
 
@@ -33,25 +32,21 @@ float range_query(const char *path,const char *date_from,const char *date_to,flo
 		time_t date_1 = mktime(getdate(date_from));
 		time_t date_2 = mktime(getdate(date_to));
 
-		while((line_size=getline(&line,&line_buf,input)) > 0) {
-
-				// Strip newline
-				line[line_size-1] = '\0';
+		while(getline(&line,&line_buf,input) > 0) {
 
 				ASSERT(date_2 > date_1,"`From` date after `to` date!");
 
-				char *_line = strdup(line);
-				time_t date_3 = mktime(getdate(strtok(line,DELIMITER)));
+				char *temp = strdup(line);
+				time_t date_3 = mktime(getdate(strtok(temp,DELIMITER)));
+				free(temp);
 
 				if(date_1 <= date_3 && date_3 <= date_2) {
-					result += (*parse_line)(_line);
+					result += (*parse_line)(line);
 				}
 
-				free(line);
-				line=NULL;
-				line_buf=0;
 		}
 
+		free(line);
 		fclose(input);
 		return result;
 }
@@ -60,33 +55,33 @@ float category_range_query(const char *path,const char *date_from,const char *da
 {
 		char *line=NULL;
 		size_t line_buf=0;
-		ssize_t line_size=0;
 		float result=0;
-		FILE *input=fopen(path,"r");
 
+		FILE *input=fopen(path,"r");
 		ASSERT(NULL != input,"Error opening range query file");
+
+		char **tokenizer;
+		int tokenizer_size;
 
 		time_t date_1 = mktime(getdate(date_from));
 		time_t date_2 = mktime(getdate(date_to));
 
-		while((line_size=getline(&line,&line_buf,input)) > 0) {
+		while(getline(&line,&line_buf,input) > 0) {
 
-				// Strip newline
-				line[line_size-1] = '\0';
+				tokenizer = create_tokenizer(strdup(line),&tokenizer_size,DELIMITER);
 
-				ASSERT(date_2 > date_1,"`From` date after `to` date!");
+				ASSERT(date_2 > date_1,"'From' date after 'to' date!");
 
-				time_t date_3 = mktime(getdate(strtok(line,DELIMITER)));
+				time_t date_3 = mktime(getdate(tokenizer_get_field(tokenizer,tokenizer_size,DATE_FIELD)));
 
-				if(date_1 <= date_3 && date_3 <= date_2 && !strcmp) {
+				if(date_1 <= date_3 && date_3 <= date_2 && !strcmp(categ_name,tokenizer_get_field(tokenizer,tokenizer_size,CATEG_FIELD))) {
 					result += (*parse_line)(line);
 				}
 
-				free(line);
-				line=NULL;
-				line_buf=0;
+				delete_tokenizer(tokenizer,tokenizer_size);
 		}
 
+		free(line);
 		fclose(input);
 		return result;
 }

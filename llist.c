@@ -15,10 +15,10 @@ void* find_data(const node *head,const void *criteria, int (*compare)(const void
 int push(node **head, void *new_node, size_t new_node_size)
 {
 		node *new_data = malloc(sizeof *new_data);
-		new_data->data = malloc(new_node_size);
+		new_data->data = new_node;
 		new_data->next = NULL;
 
-		memmove(new_data->data,new_node,new_node_size);
+		//memmove(new_data->data,new_node,new_node_size);
 
 		// Append the new node to list end
 		if((*head) == NULL) {
@@ -40,6 +40,9 @@ void free_list(node *head)
 {
 		if(head != NULL) {
 				free_list(head->next);
+
+				// Free the category name field of the data
+				free(((category*)head->data)->name);
 				free(head->data);
 				free(head);
 		}
