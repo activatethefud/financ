@@ -320,6 +320,7 @@ void goto_data_dir()
 
 int main(int argc, char **argv)
 {
+		tzset();
 		goto_data_dir();
 
 		// Set datemsk to %d/%m/%Y
@@ -445,6 +446,10 @@ int main(int argc, char **argv)
 			printf("Report for period %s to %s for %s\n",from_arg,to_arg,category_arg);
 			printf("Outflow: %f\n",outflow_sum);
 			printf("Inflow: %f\n",category_range_query(TRANSAC_FILE,from_arg,to_arg,category_arg,&sum_inflow));
+
+			//Test print
+			printf("Count: %f\n",outflow_occurrence);
+			printf("Interval: %f\n",outflow_interval_sum);
 
 
 			printf("Average transaction: %f\n",outflow_sum / outflow_occurrence);

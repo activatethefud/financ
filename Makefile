@@ -13,3 +13,8 @@ callbacks.o : callbacks.h
 .PHONY : clean
 clean : 
 	rm financ $(objects)
+
+
+.PHONY : debug
+debug : $(objects)
+	gcc -g -lm -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow -Wconversion -o financ $(objects)

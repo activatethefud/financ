@@ -48,19 +48,20 @@ float count_occurrence_outflow(char *line)
 		return 0;
 	}
 
-	if(!last) {
-		last = mktime(getdate(tokenizer_get_field(tokenizer,tokenizer_size,DATE_FIELD)));
-	}
-	else {
-		current = mktime(getdate(tokenizer_get_field(tokenizer,tokenizer_size,DATE_FIELD)));
-		float diff = current - last;
-		last = current;
+	// Uncomment to get recommended PER DAY otherwise recommended PER TRANSACTION
+	//if(!last) {
+	//	last = mktime(getdate(tokenizer_get_field(tokenizer,tokenizer_size,DATE_FIELD)));
+	//}
+	//else {
+	//	current = mktime(getdate(tokenizer_get_field(tokenizer,tokenizer_size,DATE_FIELD)));
+	//	float diff = current - last;
+	//	last = current;
 
-		if(!diff) {
-			delete_tokenizer(tokenizer,tokenizer_size);
-			return 0;
-		}
-	}
+	//	if(!diff) {
+	//		delete_tokenizer(tokenizer,tokenizer_size);
+	//		return 0;
+	//	}
+	//}
 
 	delete_tokenizer(tokenizer,tokenizer_size);
 	return 1;
