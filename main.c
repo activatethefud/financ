@@ -135,7 +135,6 @@ int parse_transaction(const char *_line)
 		char *t_date_string;
 		int io_flag;
 		char *category_name;
-		float amount;
 		line_counter++;
 
 		time_t curtime=time(NULL);
@@ -154,7 +153,8 @@ int parse_transaction(const char *_line)
 
 		io_flag = strtol(tokenizer_get_field(tokenizer,tokenizer_size,IO_FIELD),NULL,10);
 		category_name = tokenizer_get_field(tokenizer,tokenizer_size,CATEG_FIELD);
-		amount = strtof(tokenizer_get_field(tokenizer,tokenizer_size,AMOUNT_FIELD),NULL);
+
+		float amount = get_true_amount(tokenizer_get_field(tokenizer,tokenizer_size,AMOUNT_FIELD));
 
 		category *found_ptr=FIND_CATEGORY(categories,category_name,&category_read_check);
 
@@ -193,7 +193,7 @@ int parse_transaction(const char *_line)
 		return 0;
 }
 
-char *create_transaction_line(char *date_arg,const int io_flag,const char *categ_name,const float amount,const char *description)
+char *create_transaction_line(char *date_arg,const int io_flag,const char *categ_name,const char *amount,const char *description)
 {
 		size_t buf_size=0;
 		buf_size += strlen(date_arg);
@@ -206,10 +206,10 @@ char *create_transaction_line(char *date_arg,const int io_flag,const char *categ
 		ASSERT(NULL != line,"Malloc failed");
 
 		if(description == NULL) {
-				sprintf(line,"%s,%d,%s,%.2f\n",date_arg,io_flag,categ_name,amount);
+				sprintf(line,"%s,%d,%s,%s\n",date_arg,io_flag,categ_name,amount);
 		}
 		else {
-				sprintf(line,"%s,%d,%s,%.2f,%s\n",date_arg,io_flag,categ_name,amount,description);
+				sprintf(line,"%s,%d,%s,%s,%s\n",date_arg,io_flag,categ_name,amount,description);
 		}
 
 		//free(date_arg);
@@ -238,9 +238,14 @@ void cover(category *source_ptr,float cover_with)
 		}
 
 		float transac_amount = cover_with > fabs(current_ptr->state) ? fabs(current_ptr->state) : cover_with;
+		char *amount_string = malloc(50);
 
-		parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),2,source_ptr->name,transac_amount,NULL)));
-		parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),12,current_ptr->name,transac_amount,NULL)));
+		sprintf(amount_string,"%f",transac_amount);
+
+		parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),2,source_ptr->name,amount_string,NULL)));
+		parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),12,current_ptr->name,amount_string,NULL)));
+
+		free(amount_string);
 
 		cover_with -= transac_amount;
 		iterator = iterator->next;
@@ -270,8 +275,11 @@ void quick_budget(category *source_ptr)
 				float unbudgeted = current_ptr->plan - current_ptr->budgeted;
 				transac_amount = source_ptr->state > unbudgeted ? unbudgeted : source_ptr->state;
 
-				parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),2,source_ptr->name,transac_amount,NULL)));
-				parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),12,current_ptr->name,transac_amount,NULL)));
+				char *amount_string = malloc(50);
+				sprintf(amount_string,"%f",transac_amount);
+
+				parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),2,source_ptr->name,amount_string,NULL)));
+				parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),12,current_ptr->name,amount_string,NULL)));
 
 				iterator = iterator->next;
 		}
@@ -316,6 +324,18 @@ void goto_data_dir()
 	ASSERT(0 == chdir(data_dir_path),"Error changing to data directory.");
 
 	free(data_dir_path);
+}
+
+float get_true_amount(const char *amount_arg)
+{
+	float euro = 117;
+	float amount = strtof(amount_arg,NULL);
+
+	if(strchr(amount_arg,'e')) {
+		amount *= euro;
+	}
+
+	return amount;
 }
 
 int main(int argc, char **argv)
@@ -430,7 +450,7 @@ int main(int argc, char **argv)
 
 		if(cover_flag && NULL != category_arg && NULL != amount_arg) {
 
-			cover(FIND_CATEGORY(categories,category_arg,&category_read_check),strtof(amount_arg,NULL));
+			cover(FIND_CATEGORY(categories,category_arg,&category_read_check),get_true_amount(amount_arg));
 			//free(category_arg);
 			//free(amount_arg);
 
@@ -508,8 +528,8 @@ int main(int argc, char **argv)
 						ASSERT(0,"--to category doesn't exist!");
 				}
 
-				append_to_file(TRANSAC_FILE,create_transaction_line(date_arg,2,from_arg,strtof(amount_arg,NULL),description));
-				append_to_file(TRANSAC_FILE,create_transaction_line(date_arg,12,to_arg,strtof(amount_arg,NULL),description));
+				append_to_file(TRANSAC_FILE,create_transaction_line(date_arg,2,from_arg,amount_arg,description));
+				append_to_file(TRANSAC_FILE,create_transaction_line(date_arg,12,to_arg,amount_arg,description));
 				//free(to_arg);
 				//free(from_arg);
 				//free(amount_arg);
@@ -523,7 +543,7 @@ int main(int argc, char **argv)
 						ASSERT(0,"Category doesn't exist!");
 				}
 
-				append_to_file(TRANSAC_FILE,create_transaction_line(date_arg,1 == inflow_flag,category_arg,strtof(amount_arg,NULL),description));
+				append_to_file(TRANSAC_FILE,create_transaction_line(date_arg,1 == inflow_flag,category_arg,amount_arg,description));
 				//free(category_arg);
 		}
 		else if(quick_flag && category_arg != NULL) {

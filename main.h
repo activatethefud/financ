@@ -49,4 +49,6 @@ typedef struct {
 	float amount;
 } transac_line;
 
+float get_true_amount(const char *amount_arg);
+
 #endif
