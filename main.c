@@ -255,9 +255,9 @@ void quick_budget(category *source_ptr)
 
 		while(iterator != NULL) {
 
-				current_ptr=(category*)(iterator->data);
+				current_ptr = (category*)(iterator->data);
 
-				if((current_ptr == source_ptr) || (current_ptr->budgeted == current_ptr->plan)) {
+				if((current_ptr == source_ptr) || (current_ptr->budgeted >= current_ptr->plan)) {
 						iterator=iterator->next;
 						continue;
 				}
@@ -273,7 +273,7 @@ void quick_budget(category *source_ptr)
 				parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),2,source_ptr->name,transac_amount,NULL)));
 				parse_transaction(append_to_file(TRANSAC_FILE,create_transaction_line(current_date_string(),12,current_ptr->name,transac_amount,NULL)));
 
-				iterator=iterator->next;
+				iterator = iterator->next;
 		}
 }
 
