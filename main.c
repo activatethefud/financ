@@ -169,6 +169,7 @@ int parse_transaction(const char *_line)
 							break;
 						case 2:
 							if(NOT_SAME_STR(found_ptr->name,"TBB") &&
+                                                           NOT_SAME_STR(found_ptr->name,"Debt") &&
 							   (t_date->tm_mon == temp_tm->tm_mon) &&
 							   (t_date->tm_year == temp_tm->tm_year)) {
 									found_ptr->budgeted -= amount;
@@ -177,6 +178,7 @@ int parse_transaction(const char *_line)
 							break;
 						case 12:
 							if(NOT_SAME_STR(found_ptr->name,"TBB") &&
+                                                           NOT_SAME_STR(found_ptr->name,"Debt") &&
 							  (t_date->tm_mon == temp_tm->tm_mon) &&
 							  (t_date->tm_year == temp_tm->tm_year)) {
 									found_ptr->budgeted += amount;

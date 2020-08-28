@@ -5,7 +5,8 @@ extern int global_int;
 
 void sum_state(const void *data)
 {
-		global_sum += ((category*)data) -> state;
+                // Multiply to skip summing for Debt category
+		global_sum += ((category*)data) -> state * (strcmp(((category*)data)->name,"Debt") != 0);
 }
 void sum_budgeted(const void *data)
 {
