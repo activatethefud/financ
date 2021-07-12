@@ -230,7 +230,8 @@ void cover(category *source_ptr,float cover_with)
 
 		current_ptr = iterator->data;
 
-		if(current_ptr == source_ptr || current_ptr->state >= 0) {
+                // Skip Debt, source and non-negative states
+		if(SAME_STR("Debt",current_ptr->name) || current_ptr == source_ptr || current_ptr->state >= 0) {
 			iterator = iterator->next;
 			continue;
 		}
@@ -308,6 +309,7 @@ void mkdir_r(char *path)
 	}
 
 	if(0 != access(path,F_OK)) {
+                ASSERT(0 != access(path,F_OK),"Error accessing directory");
 		ASSERT(0 == mkdir(path,0755),"Error creating directory");
 	}
 
